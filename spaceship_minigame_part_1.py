@@ -126,16 +126,36 @@ class Ship:
             self.image_center = ship_info_thrusters.get_center()
             self.image_size = ship_info_thrusters.get_size()
             self.radius = ship_info_thrusters.get_radius()
+            ship_thrust_sound.play()
         else:
             self.image_center = ship_info.get_center()
             self.image_size = ship_info.get_size()
             self.radius = ship_info.get_radius()
+            if ship_thrust_sound:
+                ship_thrust_sound.rewind()
             
             
                 
         
     def update(self):
-        pass
+        angle_vector = angle_to_vector(self.angle)
+        acceleration = .5
+        vel_vector = [angle_vector[0] + acceleration, angle_vector[1] + acceleration]
+        self.pos[0] += vel_vector[0]
+        self.pos[1] += vel_vector[1]
+        print self.pos[0]
+        if self.pos[0] % 800 < 10:
+            if self.pos[0] >= 800:
+                print "clear"
+                self.pos[0] = 5
+                self.pos[0] += vel_vector[0]
+                self.pos[1] += vel_vector[1]
+            elif self.pos[0] <= 2:
+                print "clear"
+                self.pos[0] = 795
+                self.pos[0] += vel_vector[0]
+                self.pos[1] += vel_vector[1]
+            
     
     def __str__(self):
         return self.image_size
@@ -197,6 +217,7 @@ def rock_spawner():
 
 # set key handlers
 def key_down_handler(key):
+    global thrusters
     # ship controllers
     if simplegui.KEY_MAP["left"] == key:
         my_ship.inc_angle_vel()
@@ -211,6 +232,7 @@ def key_down_handler(key):
         my_ship.thrusters_active(True)
 
 def key_up_handler(key):
+    global thrusters
     # ship controllers
     if simplegui.KEY_MAP["left"] == key:
         pass
