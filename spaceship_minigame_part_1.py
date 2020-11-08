@@ -1,3 +1,5 @@
+# Minproject was done in Safari web browser
+
 # program template for Spaceship
 import simplegui
 import math
@@ -102,26 +104,29 @@ class Ship:
         self.image_center = info.get_center()
         self.image_size = info.get_size()
         self.radius = info.get_radius()
+        self.state = False
+        self.vel_vector = [1,1]
         
 
         
     def draw(self,canvas):
         canvas.draw_circle(self.pos, self.radius, 1, "White", "White")
-        canvas.draw_image(self.image, self.image_center, self.image_size, self.pos, self.image_center, self.angle)
+        canvas.draw_image(self.image, self.image_center, self.image_size, self.pos, self.image_size, self.angle)
 
 
     def inc_angle_vel(self):
         self.angle_vel = -.5
         self.angle += self.angle_vel
-        print self.angle, self.angle_vel
+        # print self.angle, self.angle_vel
     
     def dec_angle_vel(self):
         self.angle_vel = .5
         self.angle += self.angle_vel
-        print self.angle, self.angle_vel
+        # print self.angle, self.angle_vel
         
     def thrusters_active(self, state):
         global ship_info, ship_info_thrusters
+        self.state = state
         if state == True:
             self.image_center = ship_info_thrusters.get_center()
             self.image_size = ship_info_thrusters.get_size()
@@ -138,27 +143,66 @@ class Ship:
                 
         
     def update(self):
-        angle_vector = angle_to_vector(self.angle)
-        acceleration = .5
-        vel_vector = [angle_vector[0] + acceleration, angle_vector[1] + acceleration]
-        self.pos[0] += vel_vector[0]
-        self.pos[1] += vel_vector[1]
-        print self.pos[0]
+        if self.state:
+            angle_vector = angle_to_vector(self.angle)
+            acceleration = 2
+            vel_vector = [angle_vector[0] * acceleration, angle_vector[1] * acceleration]
+            self.pos[0] += vel_vector[0]
+            self.pos[1] += vel_vector[1]
+        else:
+            angle_vector = angle_to_vector(self.angle)
+            vel_vector = [angle_vector[0], angle_vector[1]]
+            friction_const = .25
+            vel_vector[0] *= friction_const
+            vel_vector[1] *= friction_const
+            self.pos[0] += vel_vector[0]
+            self.pos[1] += vel_vector[1]
+        
+        # print "vel " + str(vel_vector[0])
+        # print self.pos[1]
+        # enable screen wrapping left and right sides
         if self.pos[0] % 800 < 10:
+            # wrapping from right to left
             if self.pos[0] >= 800:
-                print "clear"
+                # print "clear"
                 self.pos[0] = 5
                 self.pos[0] += vel_vector[0]
                 self.pos[1] += vel_vector[1]
+            # wrapping from left to right
             elif self.pos[0] <= 2:
-                print "clear"
+                # print "clear"
                 self.pos[0] = 795
                 self.pos[0] += vel_vector[0]
                 self.pos[1] += vel_vector[1]
-            
+        # enable screen wrapping top and bottom
+        if self.pos[1] % 600 < 10:
+            # wrapping from bottom to top
+            if self.pos[1] >= 600:
+                # print "clear"
+                self.pos[1] = 5
+                self.pos[0] += vel_vector[0]
+                self.pos[1] += vel_vector[1]
+            # wrapping from top to bottom
+            elif self.pos[1] <= 2:
+                # print "clear"
+                self.pos[1] = 595
+                self.pos[0] += vel_vector[0]
+                self.pos[1] += vel_vector[1]
+                
+    def shoot(self):
+        global a_missile, missile_sound
+        angle_vector = angle_to_vector(self.angle)
+        angle_vector_multiple = [angle_vector[0] * 45, angle_vector[1] * 45]
+        pos = [self.pos[0], self.pos[1]]
+        vel =  [self.vel[0] * angle_vector_multiple[0], self.vel[1] * angle_vector_multiple[1]]
+        pos[0] += vel[0]
+        pos[1] += vel[1]
+        a_missile = Sprite(pos, vel, self.angle, 0, missile_image, missile_info, missile_sound)
+        missile_sound.play()
+
     
     def __str__(self):
-        return self.image_size
+        pass
     
     
 # Sprite class
@@ -181,13 +225,49 @@ class Sprite:
    
     def draw(self, canvas):
         canvas.draw_circle(self.pos, self.radius, 1, "Red", "Red")
+        canvas.draw_image(self.image, self.image_center, self.image_size, self.pos, self.image_center, self.angle)
+
     
     def update(self):
-        pass        
+        # move asteroids
+        self.angle += self.angle_vel
+        angle_vector = angle_to_vector(self.angle)
+        vel_vector = [angle_vector[0], angle_vector[1]]
+        self.pos[0] += vel_vector[0]
+        self.pos[1] += vel_vector[1]
+        
+        if self.pos[0] % 800 < 10:
+            # wrapping from right to left
+            if self.pos[0] >= 800:
+                # print "clear"
+                self.pos[0] = 5
+                self.pos[0] += vel_vector[0]
+                self.pos[1] += vel_vector[1]
+            # wrapping from left to right
+            elif self.pos[0] <= 2:
+                # print "clear"
+                self.pos[0] = 795
+                self.pos[0] += vel_vector[0]
+                self.pos[1] += vel_vector[1]
+        # enable screen wrapping top and bottom
+        if self.pos[1] % 600 < 10:
+            # wrapping from bottom to top
+            if self.pos[1] >= 600:
+                # print "clear"
+                self.pos[1] = 5
+                self.pos[0] += vel_vector[0]
+                self.pos[1] += vel_vector[1]
+            # wrapping from top to bottom
+            elif self.pos[1] <= 2:
+                # print "clear"
+                self.pos[1] = 595
+                self.pos[0] += vel_vector[0]
+                self.pos[1] += vel_vector[1]        
 
            
+    
 def draw(canvas):
-    global time
+    global time, lives, score
     
     # animiate background
     time += 1
@@ -197,6 +277,8 @@ def draw(canvas):
     canvas.draw_image(nebula_image, nebula_info.get_center(), nebula_info.get_size(), [WIDTH / 2, HEIGHT / 2], [WIDTH, HEIGHT])
     canvas.draw_image(debris_image, center, size, (wtime - WIDTH / 2, HEIGHT / 2), (WIDTH, HEIGHT))
     canvas.draw_image(debris_image, center, size, (wtime + WIDTH / 2, HEIGHT / 2), (WIDTH, HEIGHT))
+    canvas.draw_text("Lives: " + str(lives), (WIDTH / 7, HEIGHT / 7), 32, "white", "serif")
+    canvas.draw_text("Score: " + str(score), (WIDTH * 5 / 7, HEIGHT *  1 / 7), 32, "white", "serif")
 
     # draw ship and sprites
     my_ship.draw(canvas)
@@ -212,7 +294,14 @@ def draw(canvas):
             
 # timer handler that spawns a rock    
 def rock_spawner():
-    pass
+    global a_rock
+    angle = random.random() * 3
+    angle_vel = .1
+    pos = [random.randrange(0, 800), random.randrange(0, 600)]
+    vel = [random.random() * 2, random.random() * 2]
+    a_rock = Sprite(pos, vel, angle, angle_vel, asteroid_image, asteroid_info)
+
+
     
 
 # set key handlers
@@ -221,15 +310,19 @@ def key_down_handler(key):
     # ship controllers
     if simplegui.KEY_MAP["left"] == key:
         my_ship.inc_angle_vel()
-        print "left"
+        # print "left"
     if simplegui.KEY_MAP["right"] == key:
         my_ship.dec_angle_vel()
-        print "right"
+        # print "right"
         
     # thrusters Flag    
     if simplegui.KEY_MAP["up"] == key:
-        print "Thrusters on"
+        # print "Thrusters on"
         my_ship.thrusters_active(True)
+        
+    if simplegui.KEY_MAP["space"] == key:
+        # print "shots fired"
+        my_ship.shoot()
 
 def key_up_handler(key):
     global thrusters
@@ -241,14 +334,14 @@ def key_up_handler(key):
     
     # thrusters Flag
     if simplegui.KEY_MAP["up"] == key:
-        print "thrusters off"
+        # print "thrusters off"
         my_ship.thrusters_active(False)
         
 # initialize frame
 frame = simplegui.create_frame("Asteroids", WIDTH, HEIGHT)
 
 # initialize ship and two sprites
-my_ship = Ship([WIDTH / 2, HEIGHT / 2], [0, 0], -1.6, ship_image, ship_info)
+my_ship = Ship([WIDTH / 2, HEIGHT / 2], [1, 1], -1.6, ship_image, ship_info)
 a_rock = Sprite([WIDTH / 3, HEIGHT / 3], [1, 1], 0, 0, asteroid_image, asteroid_info)
 a_missile = Sprite([2 * WIDTH / 3, 2 * HEIGHT / 3], [-1,1], 0, 0, missile_image, missile_info, missile_sound)
 
